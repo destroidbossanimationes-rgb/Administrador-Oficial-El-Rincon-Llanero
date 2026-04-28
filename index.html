@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="tab-title">Cargando Menú...</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="textura-madera">
+
+    <nav class="nav-principal">
+        <button class="nav-btn active" id="btn-vista-cliente" onclick="switchMainTab('cliente')">
+            <i class="fas fa-utensils"></i> VER MENÚ
+        </button>
+        <button class="nav-btn" id="btn-vista-admin" onclick="accesoAdmin()">
+            <i class="fas fa-user-shield"></i> ADMINISTRACIÓN
+        </button>
+    </nav>
+
+    <section id="seccion-cliente">
+        <header class="header-llanero">
+            <div class="deco-soga"></div>
+            <div class="logo-contenedor">
+    <i class="fas fa-hat-cowboy-side sombrero-nuevo-blanco"></i></div>            
+            <h1 class="titulo-quemado" id="main-name">CARGANDO...</h1>
+            <p id="main-slogan" class="eslogan-txt"></p>
+            <p id="main-desc" class="desc-negocio-txt"></p>
+            
+            <div id="redes-sociales" class="redes-header"></div>
+            
+            <div class="info-loc-box">
+                <i class="fas fa-map-marker-alt"></i> <span id="loc-txt">Ubicación</span>
+            </div>
+
+            <div class="tasa-box">Tasa: <b id="tasa-cliente">--</b> Bs.</div>
+            
+            <div class="share-actions">
+                <button onclick="generarQR()" class="btn-share"><i class="fas fa-qrcode"></i></button>
+                <button onclick="copiarLink()" class="btn-share"><i class="fas fa-link"></i></button>
+            </div>
+        </header>
+
+        <div class="contenedor">
+            <div class="search-container">
+                <input type="text" id="busqueda" placeholder="🔍 ¿Qué va a pedir, pariente?" onkeyup="filtrarProductos()">
+            </div>
+            <div class="categorias-bar" id="cat-bar-cliente"></div>
+            <div id="grid-productos" class="grid-layout"></div>
+        </div>
+    </section>
+
+    <section id="seccion-admin" style="display:none;">
+        <div class="admin-container">
+            <div class="admin-header-box">
+                <h2><i class="fas fa-hat-cowboy"></i> PANEL DE CONTROL</h2>
+                <button class="btn-rojo-mini" onclick="switchMainTab('cliente')">SALIR</button>
+            </div>
+
+            <div class="admin-tabs">
+                <button class="sub-tab active" onclick="switchAdminTab(event, 'adm-productos')">PRODUCTOS</button>
+                <button class="sub-tab" onclick="switchAdminTab(event, 'adm-categorias')">CATEGORÍAS</button>
+                <button class="sub-tab" onclick="switchAdminTab(event, 'adm-ajustes')">NEGOCIO</button>
+            </div>
+
+            <div id="adm-productos" class="admin-content active">
+    <div class="form-madera">
+        <h3>AÑADIR / EDITAR PLATO</h3>
+        <input type="hidden" id="edit-id">
+        <input type="text" id="p-nombre" placeholder="Nombre del plato">
+        <textarea id="p-desc" placeholder="Descripción e ingredientes"></textarea>
+        <select id="p-categoria-select">
+            <option value="" disabled selected>Seleccione Categoría</option>
+        </select>
+        <input type="number" id="p-precio" placeholder="Precio en Bs.">
+        <input type="file" id="p-foto" accept="image/*">
+
+        <div style="background: rgba(255,255,255,0.1); padding: 10px; border-radius: 8px; margin: 10px 0; border: 1px solid var(--oro); display: flex; align-items: center; gap: 10px;">
+            <input type="checkbox" id="p-disponible" checked style="width: 20px; height: 20px; cursor: pointer;">
+            <label for="p-disponible" style="color: var(--oro); font-family: 'Oswald'; cursor: pointer;">¿ESTÁ DISPONIBLE HOY?</label>
+        </div>
+
+        <button class="btn-llanero" onclick="guardarProducto()">GUARDAR EN EL MENÚ</button>
+        <button class="btn-rojo-mini" onclick="limpiarForm()" style="margin-top:10px; width:100%">CANCELAR EDICIÓN</button>
+    </div>
+    <div 
+id="inventario-grid" class="inventario-grid"></div>
+</div>                <div id="inventario-grid" class="inventario-grid"></div>
+            </div>
+
+            <div id="adm-categorias" class="admin-content" style="display:none;">
+                <div class="form-madera">
+                    <h3>GESTIÓN DE CATEGORÍAS</h3>
+                    <input type="text" id="nueva-cat-input" placeholder="Nombre de la categoría">
+                    <button class="btn-llanero" onclick="crearCategoria()">CREAR CATEGORÍA</button>
+                </div>
+                <div id="lista-categorias-admin" class="lista-admin-items"></div>
+            </div>
+
+            <div id="adm-ajustes" class="admin-content" style="display:none;">
+                <div class="form-madera">
+                    <h3>IDENTIDAD DEL NEGOCIO</h3>
+                    <input type="text" id="conf-nombre" placeholder="Nombre del Negocio">
+                    <input type="text" id="conf-eslogan" placeholder="Eslogan">
+                    <textarea id="conf-desc" placeholder="Descripción del negocio"></textarea>
+                    <div class="grid-form">
+                        <input type="text" id="conf-pais" placeholder="País">
+                        <input type="text" id="conf-estado" placeholder="Estado">
+                        <input type="text" id="conf-ciudad" placeholder="Pueblo / Ciudad">
+                    </div>
+                    <h3>CONTACTO Y REDES</h3>
+                    <input type="text" id="conf-wa" placeholder="WhatsApp (Ej: 584120000000)">
+                    <input type="text" id="conf-ig" placeholder="Enlace Instagram">
+                    <input type="text" id="conf-fb" placeholder="Enlace Facebook">
+                    <input type="text" id="conf-tk" placeholder="Enlace TikTok">
+                    <input type="number" id="conf-tasa" placeholder="Tasa del día (Bs.)" step="0.01">
+                    <button class="btn-llanero" onclick="guardarAjustes()">ACTUALIZAR TODO EL HATO</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div id="modal-preview" class="modal" onclick="cerrarModal('modal-preview')">
+        <div class="modal-preview-card" onclick="event.stopPropagation()">
+            <span class="btn-x" onclick="cerrarModal('modal-preview')">&times;</span>
+            <div class="preview-layout">
+                <div class="preview-img-box">
+                    <img id="v-img" src="" alt="Producto">
+                </div>
+                <div class="preview-info">
+                    <h2 id="v-titulo"></h2>
+                    <p id="v-desc-completo" class="v-desc-txt"></p>
+                    <div class="v-precio-box">
+                        <div id="v-bs" class="v-bs-txt"></div>
+                        <div id="v-usd" class="v-usd-txt"></div>
+                    </div>
+                    <button class="btn-llanero" id="v-btn-add">
+                        <i class="fas fa-cart-plus"></i> AÑADIR AL CARRITO
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-carrito" class="modal">
+        <div class="modal-content madera-box">
+            <span class="btn-x" onclick="cerrarModal('modal-carrito')">&times;</span>
+            <h2 class="titulo-oro">🛒 MI PEDIDO</h2>
+            <div id="carrito-lista" style="max-height: 300px; overflow-y: auto; margin-bottom: 15px;"></div>
+            <div id="carrito-total" class="total-pergamino"></div>
+            <button class="btn-llanero" onclick="enviarPedido()"><i class="fab fa-whatsapp"></i> ENVIAR A WHATSAPP</button>
+            <button class="btn-rojo-mini" onclick="vaciarCarrito()" style="width:100%; margin-top:10px;">VACIAR TODO</button>
+        </div>
+    </div>
+
+    <div id="modal-qr" class="modal">
+        <div class="modal-content qr-box" style="text-align:center">
+            <span class="btn-x" onclick="cerrarModal('modal-qr')">&times;</span>
+            <h3>ESCANEAME, PARIENTE</h3>
+            <canvas id="qr-canvas"></canvas>
+        </div>
+    </div>
+
+    <div id="cart-float" onclick="abrirCarrito()">🛒 <span id="cart-count">0</span></div>
+
+    <script src="script.js"></script>
+</body>
+</html>
